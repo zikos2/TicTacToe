@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .board {
+        display: flex;
+        flex-wrap: wrap;
+        width: 366px;
+        height: 366px;
+        margin-left: 450px;
+      }
+
+      .cell {
+        width: 120px;
+        height: 120px;
+        color: black;
+        font-size: 50px;
+        background-color: #ffffff;
+        border: 1px solid black;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .left {
+        border-left-color: white;
+      }
+
+      .top {
+        border-top-color: white;
+      }
+
+      .right {
+        border-right-color: white;
+      }
+
+      .bottom {
+        border-bottom-color: white;
+      }
+
+      .gameId {
+        color: red;
+        font-size: 50px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="gameOver"></div>
+    <div>
+      <button onclick="createGame()">Create Game</button>
+      <div class="gameId"></div>
+    </div>
+    <div>
+      <input
+        type="text"
+        name="joinGameId"
+        class="joinGameId"
+        placeholder="Join Game..."
+      />
+      <button onclick="joinGame()">Join Game</button>
+    </div>
+    <div class="turn"></div>
+    <div class="clients"></div>
+
+    <div class="board">
+      <div class="cell top left" id="0"></div>
+      <div class="cell top" id="1"></div>
+      <div class="cell top right" id="2"></div>
+      <div class="cell left" id="3"></div>
+      <div class="cell" id="4"></div>
+      <div class="cell right" id="5"></div>
+      <div class="cell bottom left" id="6"></div>
+      <div class="cell bottom" id="7"></div>
+      <div class="cell bottom right" id="8"></div>
+    </div>
+
+    <script
+      src="https://cdn.socket.io/3.1.3/socket.io.min.js"
+      integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      const socket = io("http://localhost:4000");
+      let clientId = null;
+      let winner = null;
+
+      const joinGameId = document.querySelector(".joinGameId");
+      const gameId = document.querySelector(".gameId");
+      const clients = document.querySelector(".clients");
+      const gameOver = document.querySelector(".gameOver");
+      const cells = document.querySelectorAll(".cell");
+      const turnElement = document.querySelector(".turn");
+
+      //Creating a user
+      socket.on("connectUser", (id) => {
+        console.log("id", id);
+        clientId = id;
+      });
+
+      //Creating a new game
+      function createGame() {
+        console.log("hello");
+        socket.emit("create", clientId);
+      }
+
+      //Getting the game id
+      socket.on("gameCreated", (id) => {
+        console.log(id);
+        gameId.innerText = id;
+      });
+
+      //Joining an existing game
+      function joinGame() {
+        const payload = {
+          gameId: joinGameId.value,
+          clientId: clientId,
+        };
+        socket.emit("joinGame", payload);
+      }
+
+      socket.on("clientJoined", (game) => {
+        game.clients.forEach((client) => {
+          const clientElement = document.createElement("span");
+          clientElement.innerText = client.clientId;
+          clients.appendChild(clientElement);
+        });
+      });
+
+      //Cell chosen
+      function play(e) {
+        const payload = {
+          gameId: e.target.game.id,
+          clientId: clientId,
+          cell: e.target.id,
+        };
+        socket.emit("play", payload);
+      }
+
+      //Update Game State
+      socket.on("updateGameState", (game) => {
+        cells.forEach((cell, index) => {
+          cell.innerText = game.board[index];
+        });
+
+        if (game.turn === clientId) {
+          cells.forEach((cell) => {
+            cell.addEventListener("click", play);
+          });
+        } else {
+          console.log("not you're turn");
+          cells.forEach((cell) => {
+            cell.removeEventListener("click", play);
+          });
+        }
+
+        if (game.winner != null) {
+          cells.forEach((cell) => {
+            cell.removeEventListener("click", play);
+          });
+          if (game.winner === clientId) {
+            gameOver.innerText = "You won";
+          } else {
+            gameOver.innerText = "You lost, you looser";
+          }
+        }
+
+        turnElement.innerText = game.turn;
+      });
+
+      //handling errors
+      socket.on("error", (message) => {
+        console.log("error", message);
+      });
+    </script>
+  </body>
+</html>
