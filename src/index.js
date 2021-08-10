@@ -10,9 +10,9 @@ const checkWinner = require("./helpers");
 const refreshRate = 700;
 
 let cid = 0;
-let gid = 10;
+let gid = 10;   
 const clients = {};
-const games = {};
+const games = {}; 
 
 let winner = null;
 
@@ -59,7 +59,7 @@ io.on("connection", (socket) => {
       mark: "O",
     });
 
-    if (game.clients.length === 2) updateState();
+    if (game.clients.length === 2) updateState(); 
     game.clients.forEach((client) => {
       clients[client.clientId].emit("clientJoined", game);
     });
@@ -71,7 +71,9 @@ io.on("connection", (socket) => {
     const client = game.clients.filter(
       (client) => client.clientId === payload.clientId
     )[0];
-
+      if(game.board[payload.cell] != null){
+        return;
+      }
     game.board[payload.cell] = client.mark;
     game.turn = game.clients.filter(
       (cl) => cl.clientId != payload.clientId
@@ -80,7 +82,7 @@ io.on("connection", (socket) => {
   });
 
   console.log("client connected");
-});
+});  
 
 //Update game state
 function updateState() {
@@ -88,9 +90,14 @@ function updateState() {
     const game = games[g];
     const winnerCheck = checkWinner(game.board);
     if (winnerCheck != null) {
-      game.winner = game.clients.filter(
-        (client) => client.mark === winnerCheck
-      )[0].clientId;
+      if(winnerCheck === "tie"){
+        game.winner = "tie"
+      }else{
+        game.winner = game.clients.filter(
+          (client) => client.mark === winnerCheck
+        )[0].clientId;
+      }
+
     }
 
     game.clients.forEach((client) => {

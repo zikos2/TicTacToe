@@ -19,10 +19,16 @@ module.exports = function checkWinner(board) {
     [2, 4, 6],
   ];
 
-  let winner = null;
+  let winner = "tie";
   for (let i = 0; i < winList.length; i++) {
     if (eq(board[winList[i][0]], board[winList[i][1]], board[winList[i][2]])) {
       return board[winList[i][0]];
+    }
+  }
+
+  for(let i = 0 ; i < board.length ; i++){
+    if(board[i] === null){
+      return null
     }
   }
   return winner;
